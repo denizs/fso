@@ -64,15 +64,19 @@ This allows for dynamic reconfiguration of agents without needing to restart the
 The FSO-Audit-Recorder is responsible for persisting change events and file diffs in a log format. It listens to the FSO-Broker and processes incoming messages by:
 
 - Logging the details of each change event, including:
-    - Timestamp.
+    - Timestamp of event arrived at agent
+    - Timestamp of event emitted by agent
     - File path.
     - Type of change (e.g., create, modify, delete).
 - Storing file diffs (if available) for further analysis or debugging.
 
 The audit recorder ensures that all events are safely stored, making it suitable for compliance and auditing purposes.
 
+# Project structure
 
-# Notes
+This project is configured as a monorepo. We are using poetry as our package manager of choice.
+
+# Discussion
 
 
 Remember,, this is a demo project. In real-world scenarios, you would want to use a more advanced message broker. The system has multiple shortcomings. To name a few:
@@ -80,7 +84,7 @@ Remember,, this is a demo project. In real-world scenarios, you would want to us
 - security
 - ...
 
+### Problems with the Broker: message order and guaranteed delivery.
 
-# Project structure
-
-This project is configured as a monorepo. We are using poetry as our package manager of choice.
+It is not possible to guarantee the order in which messages will be received by the consumer. This is due to the lack of a queuing mechanism and potential network issues, including congestion and delays. To address this issue, each message is equipped with two timestamps. The timestamp of the producer should at least mitigate for network delays.
+In a production environment, it may be advisable to consider an alternative broker. This could be an MQTT-based solution to a lightweight system like RabbitMQ, or more advanced solutions like Apache Kafka, which guarantee ordered messages, exactly-once delivery, distribution of data streams, and so on. In particular, for our use case where we want to analyze audit logs of file changes, this could be a suitable solution.
