@@ -1,9 +1,10 @@
 import base64
+import re
 import socket
 from datetime import datetime
-from typing import Literal
+from typing import List, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class FileObserverEvent(BaseModel):
@@ -30,11 +31,11 @@ class FileObserverEvent(BaseModel):
     )
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "emitter": "my-hostname",
                 "event_type": "moved",
-                "timestamp": "2024-11-24T10:15:30.456Z",
+                "timestamp": "2024-11-24T09:30:30.456Z",
                 "file_path": "/path/to/source/file.txt",
                 "destination_path": "/path/to/destination/file.txt",
             },
@@ -55,3 +56,50 @@ class FileObserverEvent(BaseModel):
         """
         json_str = base64.b64decode(base64_str).decode("utf-8")
         return cls.model_validate_json(json_str)
+
+
+class FileObserverRule(BaseModel):
+    """
+    Model representing file observer rules.
+    """
+
+    exclude_patterns: List[str] = Field(
+        ...,
+        description="A list of regular expressions to exclude files or directories from observation.",
+    )
+    important_pattern: List[str] = Field(
+        ...,
+        description="A list of regular expression to match files or directories marked as important.",
+    )
+    last_updated: datetime = Field(
+        default_factory=datetime.now,
+        description="Timestamp of when the rule was last updated.",
+    )
+
+    @field_validator("exclude_patterns", "important_pattern")
+    def validate_regex(cls, pattern: list[str]) -> str:
+        """
+        Validate that each pattern is a valid regular expression.
+        """
+        try:
+            p_comp = [re.compile(p) for p in pattern]
+        except re.error as e:
+            raise ValueError(f"Invalid pattern: {pattern}. Error: {e}")
+        return p_comp
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "exclude_patterns": [
+                    r"^.*\.tmp$",  # Exclude temporary files
+                    r"^.*__pycache__$",  # Exclude __pycache__ directories
+                    r"^.*\.log$"  # Exclude log files
+                    r"^.*/joe/.*$",  # ignore joes private files
+                ],
+                "important_pattern": [
+                    r"^.*\.conf$",  # Match configuration files as important
+                    r"^.*/important_stuff/.*$",
+                ],
+                "last_updated": "2024-11-24T11:15:30.456Z",
+            },
+        }

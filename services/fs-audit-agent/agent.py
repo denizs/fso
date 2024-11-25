@@ -1,6 +1,6 @@
 import asyncio
 
-from models import FileObserverEvent
+from models import FileObserverEvent, FileObserverRule
 from watchdog.events import (
     DirCreatedEvent,
     DirDeletedEvent,
@@ -69,17 +69,24 @@ class FSOMessageClient:
 
 class FileHandler(FileSystemEventHandler):
 
-    def __init__(self, client: FSOMessageClient, config: dict) -> None:
+    def __init__(self, client: FSOMessageClient, rule: FileObserverRule) -> None:
         super().__init__()
         self.client = client
+        self.rule = rule
         self.__loop = asyncio.get_event_loop()
 
     def __emit(self, topic: str, msg: FileObserverEvent) -> None:
         pub_co = self.client.publish(topic, msg.to_base64())
         self.__loop.create_task(pub_co)
 
+    def _is_excluded(self, path: str) -> bool:
+        """Check if a path matches any of the exclude patterns."""
+        return any(pattern.search(path) for pattern in self.rule.exclude_patterns)
+
     def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
         print(f"File {event.src_path} has been modified")
+        if self._is_excluded(event.src_path):
+            return
         msg = FileObserverEvent(
             event_type="modified",
             file_path=event.src_path,
@@ -87,6 +94,8 @@ class FileHandler(FileSystemEventHandler):
         self.__emit(event.src_path, msg)
 
     def on_created(self, event: FileCreatedEvent | DirCreatedEvent) -> None:
+        if self._is_excluded(event.src_path):
+            return
         print(f"File {event.src_path} has been created")
         msg = FileObserverEvent(
             event_type="created",
@@ -95,6 +104,8 @@ class FileHandler(FileSystemEventHandler):
         self.__emit(event.src_path, msg)
 
     def on_moved(self, event: DirMovedEvent | FileMovedEvent) -> None:
+        if self._is_excluded(event.src_path):
+            return
         print(f"File {event.src_path} has been moved to {event.dest_path}")
         msg = FileObserverEvent(
             event_type="moved",
@@ -104,6 +115,8 @@ class FileHandler(FileSystemEventHandler):
         self.__emit(event.src_path, msg)
 
     def on_deleted(self, event: FileDeletedEvent | DirDeletedEvent) -> None:
+        if self._is_excluded(event.src_path):
+            return
         print(f"File {event.src_path} has been deleted")
         msg = FileObserverEvent(
             event_type="deleted",
@@ -143,9 +156,17 @@ class FSOFileObserver:
 async def run_agent():
     # TODO: make this configurable
     path = "/tmp/enlyze"
+    rule = FileObserverRule(
+        exclude_patterns=[
+            r"^.*/joe/.*$",
+        ],
+        important_pattern=[
+            r"^.*/important_stuff/.*$",
+        ],
+    )
 
     client = FSOMessageClient()
-    handler = FileHandler(client, config={})
+    handler = FileHandler(client, rule)
     file_observer = FSOFileObserver(
         path_to_watch=path,
         file_handler=handler,
