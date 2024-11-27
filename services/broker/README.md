@@ -64,3 +64,18 @@ telnet 127.0.0.1 1883
 SUBSCRIBE test/topic
 PUBLISH test/topic Hello, FSOBroker!
 ```
+
+
+## Docker
+
+Run the broker in docker by first building the container:
+
+```bash
+docker build -t fsobroker .
+```
+
+and then running it
+
+```bash
+docker run -p 1883:1883 fsobroker
+```

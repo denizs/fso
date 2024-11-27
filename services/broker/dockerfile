@@ -1,0 +1,14 @@
+# Use the official Python image as a base image
+FROM python:3.11-slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Expose the default port for the broker (1883)
+EXPOSE 1883
+
+# Run the broker script when the container starts
+CMD ["python", "fso_broker.py"]
