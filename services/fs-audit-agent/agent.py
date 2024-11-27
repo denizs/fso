@@ -90,6 +90,10 @@ class FileHandler(FileSystemEventHandler):
         return any(pattern.search(path) for pattern in self.rule.important_pattern)
 
     def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
+        if isinstance(event, DirModifiedEvent):
+            # ignore directory modify events
+            return
+
         print(f"File {event.src_path} has been modified")
         if self._is_excluded(event.src_path):
             return
@@ -111,6 +115,10 @@ class FileHandler(FileSystemEventHandler):
         self.__emit(event.src_path, msg)
 
     def on_created(self, event: FileCreatedEvent | DirCreatedEvent) -> None:
+        if isinstance(event, DirCreatedEvent):
+            # ignore directory create events
+            return
+
         if self._is_excluded(event.src_path):
             return
 
@@ -127,6 +135,10 @@ class FileHandler(FileSystemEventHandler):
         self.__emit(event.src_path, msg)
 
     def on_moved(self, event: DirMovedEvent | FileMovedEvent) -> None:
+        if isinstance(event, DirMovedEvent):
+            # ignore directory moved events
+            return
+
         if self._is_excluded(event.src_path):
             return
 
@@ -143,8 +155,14 @@ class FileHandler(FileSystemEventHandler):
         self.__emit(event.src_path, msg)
 
     def on_deleted(self, event: FileDeletedEvent | DirDeletedEvent) -> None:
+        # TODO: clean cache after file deleted...
+        if isinstance(event, DirDeletedEvent):
+            # ignore directory create events
+            return
+
         if self._is_excluded(event.src_path):
             return
+
         print(f"File {event.src_path} has been deleted")
         msg = FileObserverEvent(
             event_type="deleted",
