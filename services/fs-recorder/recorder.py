@@ -1,13 +1,17 @@
 import asyncio
 import base64
 import json
+import os
+
+import aiofiles
 
 
-class AsyncMQTTClient:
-    def __init__(self, host: str, port: int, topic: str):
+class FSORecorderClient:
+    def __init__(self, host: str, port: int, topic: str, logfile: str):
         self.host = host
         self.port = port
         self.topic = topic
+        self.file_path = logfile
         self.reader = None
         self.writer = None
 
@@ -43,6 +47,23 @@ class AsyncMQTTClient:
         finally:
             self.disconnect()
 
+    async def __log_line(self, topic: str, payload: dict):
+        """
+        Asynchronously writes a message with topic and payload
+        in JSON Line Protocol format to the specified file.
+        """
+        # Ensure the directory for the file exists
+        os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
+
+        json_line = {
+            "topic": topic,
+            "payload": payload,
+        }
+
+        # open file append mode...
+        async with aiofiles.open(self.file_path, "a", encoding="utf-8") as f:
+            await f.write(json.dumps(json_line) + "\n")
+
     async def handle_message(self, message: str):
         """Handles an incoming message."""
         try:
@@ -55,6 +76,10 @@ class AsyncMQTTClient:
             # Parse JSON and pretty-print it
             parsed_payload = json.loads(decoded_payload)
             print(json.dumps(parsed_payload, indent=4))
+
+            # Log it to a file
+            await self.__log_line(topic, parsed_payload)
+
         except (ValueError, json.JSONDecodeError) as e:
             print(f"Failed to process message: {message}\nError: {e}")
 
@@ -65,13 +90,13 @@ class AsyncMQTTClient:
             print("Disconnected from broker.")
 
 
-# Async main function
 async def main():
     host = "127.0.0.1"  # Broker host
     port = 1883  # Broker port
     topic = "/tmp/enlyze~"  # Topic to subscribe to
+    logfile = os.path.abspath("./audit.jsonl")
 
-    client = AsyncMQTTClient(host, port, topic)
+    client = FSORecorderClient(host, port, topic, logfile)
     await client.connect()
 
     # Start processing messages
@@ -83,4 +108,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Client stopped.")
+        print("FSO Recorder stopped.")
