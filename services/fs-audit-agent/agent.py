@@ -1,4 +1,5 @@
 import asyncio
+import pathlib
 
 from cache import FSOFileDiff
 from models import FileObserverEvent, FileObserverRule
@@ -88,6 +89,15 @@ class FileHandler(FileSystemEventHandler):
     def _is_important(self, path: str) -> bool:
         """Check if a path matches any of the important patterns."""
         return any(pattern.search(path) for pattern in self.rule.important_pattern)
+
+    def initialize_cache(self, path_to_watch: str):
+        """
+        Initialize the cache with files we want to watch.
+        """
+        root_dir = pathlib.Path(path_to_watch)
+        for node in root_dir.rglob("*"):
+            if node.is_file() and not self._is_excluded(str(node)):
+                self.cache.add_file(str(node))
 
     def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
         if isinstance(event, DirModifiedEvent):
@@ -188,6 +198,7 @@ class FSOFileObserver:
         """
         Start observing the path for changes.
         """
+        self.event_handler.initialize_cache(self.path_to_watch)
         self.observer.schedule(self.event_handler, self.path_to_watch, recursive=True)
         self.observer.start()
         print(f"Started monitoring {self.path_to_watch}.")
