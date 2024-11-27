@@ -34,6 +34,14 @@ class FSOFileDiff:
         self.update_cache(file_path)
         print(f"File '{file_path}' added for monitoring.")
 
+    def rekey(self, old_path: str, new_path: str) -> None:
+        """keys can change when a file is moved. Tell the cache to track with new key"""
+        try:
+            self.files.update({new_path: self.files.pop(old_path)})
+        except KeyError as e:
+            print(f"Cache Re-Keying failed for {old_path}")
+            self.add_file(new_path)
+
     def update_cache(self, file_path: str) -> None:
         """
         Update the file cache. This potentially overrides existing
@@ -57,7 +65,7 @@ class FSOFileDiff:
         if not previous_content:
             print(f"No previous content to compare for file '{file_path}'.")
             # add it to the diff just in case...
-            self.update_cache(file_path)
+            self.add_file(file_path)
 
         # create a diff using difflib...
         diff = difflib.unified_diff(

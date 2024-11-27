@@ -67,21 +67,12 @@ def test_get_diff_with_change(temp_file):
     with open(temp_file, "w", encoding="utf-8") as f:
         f.write("Modified content\n")
 
-    # Capture printed diff output
-    import sys
-    from io import StringIO
-
-    captured_output = StringIO()
-    sys.stdout = captured_output
-    diff.get_diff(temp_file)
-    sys.stdout = sys.__stdout__
-
-    diff_output = captured_output.getvalue()
+    diff_output = list(diff.get_diff(temp_file))
     # now we want to check if the diff is correct...
     assert "--- previous_version" in diff_output
     assert "+++ current_version" in diff_output
-    assert "-Initial content" in diff_output
-    assert "+Modified content" in diff_output
+    assert "-Initial content\n" in diff_output
+    assert "+Modified content\n" in diff_output
 
 
 def test_get_diff_file_not_monitored(another_temp_file):
@@ -90,7 +81,7 @@ def test_get_diff_file_not_monitored(another_temp_file):
     assert output is None  # File not monitored, so no diff
 
 
-def test_state_update_after_diff(temp_file):
+def test_state_update_after_update(temp_file):
     diff = FSOFileDiff()
     diff.add_file(temp_file)
 
@@ -98,7 +89,17 @@ def test_state_update_after_diff(temp_file):
     with open(temp_file, "w", encoding="utf-8") as f:
         f.write("Modified content\n")
 
+    # we expect the updated content after update was called.
     diff.update_cache(temp_file)
-
-    diff.get_diff(temp_file)  # Generate diff
     assert diff.files[temp_file] == ["Modified content\n"]  # Verify state is updated
+
+
+def test_rekey_ok(temp_file, another_temp_file):
+    diff = FSOFileDiff()
+    diff.add_file(temp_file)
+
+    # let's rekey - like after moving a to b
+    diff.rekey(temp_file, another_temp_file)
+
+    # assert new file location is old file content. move worked.
+    assert diff.files[another_temp_file] == ["Initial content\n"]

@@ -1,5 +1,6 @@
 import asyncio
 
+from cache import FSOFileDiff
 from models import FileObserverEvent, FileObserverRule
 from watchdog.events import (
     DirCreatedEvent,
@@ -54,7 +55,7 @@ class FSOMessageClient:
             command = f"PUBLISH {topic} {message}\n"
             self.writer.write(command.encode("utf-8"))
             await self.writer.drain()
-            print(f"Published to {topic}: {message}")
+            print(f"Published to {topic}")
 
     async def listen(self) -> None:
         """Listen for incoming messages from the broker."""
@@ -72,6 +73,7 @@ class FileHandler(FileSystemEventHandler):
     def __init__(self, client: FSOMessageClient, rule: FileObserverRule) -> None:
         super().__init__()
         self.client = client
+        self.cache = FSOFileDiff()
         self.rule = rule
         self.__loop = asyncio.get_event_loop()
 
@@ -83,29 +85,55 @@ class FileHandler(FileSystemEventHandler):
         """Check if a path matches any of the exclude patterns."""
         return any(pattern.search(path) for pattern in self.rule.exclude_patterns)
 
+    def _is_important(self, path: str) -> bool:
+        """Check if a path matches any of the important patterns."""
+        return any(pattern.search(path) for pattern in self.rule.important_pattern)
+
     def on_modified(self, event: FileModifiedEvent | DirModifiedEvent) -> None:
         print(f"File {event.src_path} has been modified")
         if self._is_excluded(event.src_path):
             return
+
+        diff = None
+        if self._is_important(event.src_path):
+            # create a diff for an important file
+            diff = self.cache.get_diff(event.src_path)
+            if diff:
+                diff = list(diff)
+            # now, update the cache with the new file content
+            self.cache.update_cache(event.src_path)
+
         msg = FileObserverEvent(
             event_type="modified",
             file_path=event.src_path,
+            diff=diff,
         )
         self.__emit(event.src_path, msg)
 
     def on_created(self, event: FileCreatedEvent | DirCreatedEvent) -> None:
         if self._is_excluded(event.src_path):
             return
+
+        if self._is_important(event.src_path):
+            self.cache.add_file(event.src_path)
+
         print(f"File {event.src_path} has been created")
         msg = FileObserverEvent(
             event_type="created",
             file_path=event.src_path,
+            # we don't add a diff here since it's assumed a
+            # new file is not a diff
         )
         self.__emit(event.src_path, msg)
 
     def on_moved(self, event: DirMovedEvent | FileMovedEvent) -> None:
         if self._is_excluded(event.src_path):
             return
+
+        if self._is_important(event.src_path):
+            # watch new destination - rekey cache entry...
+            self.cache.rekey(event.src_path, event.dest_path)
+
         print(f"File {event.src_path} has been moved to {event.dest_path}")
         msg = FileObserverEvent(
             event_type="moved",
@@ -122,6 +150,8 @@ class FileHandler(FileSystemEventHandler):
             event_type="deleted",
             file_path=event.src_path,
             destination_path=event.dest_path,
+            # assumption: diff is not necessary since we can
+            # assume the result after a delete.
         )
         self.__emit(event.src_path, msg)
 

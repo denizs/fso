@@ -29,6 +29,10 @@ class FileObserverEvent(BaseModel):
         None,
         description="Destination path if the event is a move operation.",
     )
+    diff: List[str] | None = Field(
+        None,
+        description="A list of file diff lines",
+    )
 
     class Config:
         json_schema_extra = {
