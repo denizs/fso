@@ -90,11 +90,8 @@ class FSORecorderClient:
             print("Disconnected from broker.")
 
 
-async def main():
-    host = "127.0.0.1"  # Broker host
-    port = 1883  # Broker port
-    topic = "/tmp/enlyze~"  # Topic to subscribe to
-    logfile = os.path.abspath("./audit.jsonl")
+async def main(host, port, topic, logfile):
+    logfile = os.path.abspath(logfile)
 
     client = FSORecorderClient(host, port, topic, logfile)
     await client.connect()
@@ -105,7 +102,16 @@ async def main():
 
 # Run the async client
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", type=str, help="broker address", default="127.0.0.1")
+    parser.add_argument("-p", type=int, help="broker port", default=1883)
+    parser.add_argument("-t", type=str, help="topic string", default="/tmp/enlyze~")
+    parser.add_argument("-l", type=str, help="log file path", default="./audit.log")
+
+    args = parser.parse_args()
     try:
-        asyncio.run(main())
+        asyncio.run(main(args.c, args.p, args.t, args.l))
     except KeyboardInterrupt:
         print("FSO Recorder stopped.")
