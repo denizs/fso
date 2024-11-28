@@ -18,7 +18,6 @@ graph TD
     A[FSO-Agent] -- Publishes Events & Diffs --> B[FSO-Broker]
     B -- Forwards Events --> C[FSO-Audit-Recorder]
     B -- Forwards Diffs --> C
-    B -- Distributes Config Updates --> A
 ```
 
 
