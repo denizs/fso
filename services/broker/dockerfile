@@ -11,4 +11,4 @@ COPY . /app
 EXPOSE 1883
 
 # Run the broker script when the container starts
-CMD ["python", "fso_broker.py"]
+CMD ["python", "broker.py"]
