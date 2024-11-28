@@ -1,0 +1,19 @@
+services:
+  fso-broker:
+    build: services/broker
+    container_name: fso-broker
+    ports:
+      - "1883:1883"
+    restart: always
+
+  fso-recorder:
+    build: services/fs-recorder
+    container_name: fso-recorder
+    command: ["-c", "fso-broker", "-l", "./logs/audit.jsonl"]
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      fso-broker:
+        condition: service_started
+        restart: true # restart recorder when broker restarts
+    restart: always
