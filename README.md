@@ -50,7 +50,7 @@ The configuration is currently configured statically, but future versions could 
 
 An installation as systemd service is possible, but not necessary.
 
-[![asciicast](https://asciinema.org/a/rmFQhvb6gpxfAX6ru3pSVnHKW)]
+[![asciicast](https://asciinema.org/a/rmFQhvb6gpxfAX6ru3pSVnHKW.svg)](https://asciinema.org/a/rmFQhvb6gpxfAX6ru3pSVnHKW)
 
 ### FSO-Broker
 
@@ -62,7 +62,7 @@ The FSO-Broker acts as a centralized message broker facilitating communication b
 More information about specific details and usage instructions about the broker can be found in the broker README.
 
 
-[![asciicast](https://asciinema.org/a/35ENrRRgU9S8zkffnvYoYI5pp)]
+[![asciicast](https://asciinema.org/a/35ENrRRgU9S8zkffnvYoYI5pp.svg)](https://asciinema.org/a/35ENrRRgU9S8zkffnvYoYI5pp)
 
 ### FSO-Audit-Recorder
 
@@ -77,7 +77,7 @@ The FSO-Audit-Recorder is responsible for persisting change events and file diff
 
 The audit recorder ensures that all events are safely stored, making it suitable for compliance and auditing purposes.
 
-[![asciicast](https://asciinema.org/a/MvetaqIClgUjCkygowKkfDfPL)]
+[![asciicast](https://asciinema.org/a/MvetaqIClgUjCkygowKkfDfPL.svg)](https://asciinema.org/a/MvetaqIClgUjCkygowKkfDfPL)
 
 
 
