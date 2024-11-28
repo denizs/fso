@@ -88,7 +88,7 @@ async def main():
     server = await asyncio.start_server(
         # For demonstration, we run the server on localhost
         broker.handle_client,
-        "127.0.0.1",
+        "0.0.0.0",
         1883,
     )
     addr = server.sockets[0].getsockname()
